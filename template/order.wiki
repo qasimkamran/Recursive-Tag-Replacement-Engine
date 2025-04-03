@@ -1,0 +1,37 @@
+i!***> Order Creation
+
+!define ORDER_ID {{$ORDER_ID$}}
+!define ORDER_TYPE {{$STORE$}}
+!define CUSTOMER_ID {{$CUSTOMER_ID$}}
+
+{$ORDER_LINE_VARIABLES$}
+
+|FN_TIME_GetDateTime                               |
+|Start Time|Off Set|Format|Time?         |Result?  |
+|          |-1448  |      |$OrderTime=   |${RESULT}|
+|          |600    |      |$LoadTime=    |${RESULT}|
+|$OrderTime|660    |      |$DespatchTime=|${RESULT}|
+
+!include -c .TestCentre.Tests.FactoryAcceptanceTests.00aResources.OrderProcessing.OrderTemplate
+
+{$LINE_NUMBER_EXTENSION$}
+
+|ATF_Template Extension|Order 1  |Store Order                         |
+|path                  |transform|with                        |Result?|
+|$.order.orderId       |value_str|${ORDER_ID}                 |       |
+|$.order.orderType     |value_str|${ORDER_TYPE}               |       |
+|$.order.despatchTime  |value    |$DespatchTime               |       |
+|$.order.customerId    |value_str|${CUSTOMER_ID}              |       |
+|$.order.orderLines    |append   |Order Line {{$LINE_NUMBER$}}|       |
+{$ORDER_LINES_APPEND$}
+
+!include -c .TestCentre.Resources.MessageTemplates.ConfigureEndpoints
+!include -c .TestCentre.Resources.MessageTemplates.ErrorResponse
+
+|HTTP  |WMS Order        |Order 1       |Error Response|
+|Method|Http Status Code?|Response Body?|Request body? |
+|POST  |200              |              |              |
+
+*!
+
+
