@@ -1,0 +1,218 @@
+/*
+ * Pseudo-code for a high-performance, recursive tag replacement engine in C.
+ * All components are contained within a single script.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// -- Constants & Limits --
+#define TAG_START "{{"
+#define TAG_END "}}"
+#define MAX_RECURSION_DEPTH 100
+
+// -- Data Structures --
+
+// Tag structure: maps a tag name to its replacement string.
+typedef struct {
+    char *name;
+    char *replacement;
+} Tag;
+
+// Tag dictionary: a simple array-based lookup (for demonstration).
+typedef struct {
+    Tag *tags;
+    int count;
+} TagDictionary;
+
+// Recursion context: tracks current recursion depth and active tags (for cycle detection).
+typedef struct {
+    int depth;
+    char **activeTags; // array of tag names currently being processed
+    int activeCount;
+} RecursionContext;
+
+// -- Function Prototypes --
+char* processInput(const char *input, RecursionContext *ctx, TagDictionary *dict);
+char* resolveTag(const char *tagName, RecursionContext *ctx, TagDictionary *dict);
+int isTagActive(RecursionContext *ctx, const char *tagName);
+void addActiveTag(RecursionContext *ctx, const char *tagName);
+void removeActiveTag(RecursionContext *ctx, const char *tagName);
+char* lookupTag(TagDictionary *dict, const char *tagName);
+void appendToBuffer(char **buffer, const char *text);  // Pseudo-code for dynamic buffer append
+// Helper functions (pseudo-code): allocateBuffer, matches, extractTagName, extractPlainText, containsTag
+
+// -- Main Function --
+int main() {
+    // Example input string with tags.
+    const char *input = "Hello, {{name}}! Welcome to {{site}}.";
+
+    // Initialize tag dictionary (pseudo-code; replace with actual allocation and population).
+    TagDictionary dict;
+    // For example, dict.tags[0]: { "name", "Alice" }
+    //              dict.tags[1]: { "site", "Example.com" }
+    // dict.count = 2; (Assume this is done in an initializeDictionary() function.)
+
+    // Initialize recursion context.
+    RecursionContext ctx;
+    ctx.depth = 0;
+    ctx.activeTags = NULL; // Start with an empty list.
+    ctx.activeCount = 0;
+
+    // Process the input string.
+    char *result = processInput(input, &ctx, &dict);
+    printf("%s\n", result);
+
+    // Cleanup: free allocated memory for result, dictionary, and context (not shown here).
+
+    return 0;
+}
+
+// -- Core Functions --
+
+// processInput:
+// Parses the input string, identifies plain text and tags, and builds the output string.
+char* processInput(const char *input, RecursionContext *ctx, TagDictionary *dict) {
+    // Allocate a dynamic buffer for the result (pseudo-code: allocateBuffer returns an empty string).
+    char *result = allocateBuffer();
+
+    int pos = 0;
+    int inputLen = strlen(input);
+    while (pos < inputLen) {
+        // Check if the substring at pos matches TAG_START.
+        if (matches(input, pos, TAG_START)) {
+            // Extract tag name between TAG_START and TAG_END.
+            // extractTagName should update pos to the character after TAG_END.
+            char *tagName = extractTagName(input, &pos, TAG_START, TAG_END);
+            
+            // Resolve the tag recursively.
+            char *replacement = resolveTag(tagName, ctx, dict);
+            
+            // Append the resolved replacement to the result buffer.
+            appendToBuffer(&result, replacement);
+            
+            // Free temporary allocations if needed.
+            free(tagName);
+            free(replacement);
+        } else {
+            // Extract plain text up to the next TAG_START or end-of-string.
+            char *plainText = extractPlainText(input, &pos, TAG_START);
+            appendToBuffer(&result, plainText);
+            free(plainText);
+        }
+    }
+    return result;
+}
+
+// resolveTag:
+// Looks up the tag's replacement value and processes any nested tags recursively.
+char* resolveTag(const char *tagName, RecursionContext *ctx, TagDictionary *dict) {
+    // Check recursion depth.
+    if (ctx->depth >= MAX_RECURSION_DEPTH) {
+        error("Max recursion depth reached");
+    }
+    // Check for circular references.
+    if (isTagActive(ctx, tagName)) {
+        error("Circular reference detected");
+    }
+    
+    // Add the tag to the active list and increment recursion depth.
+    addActiveTag(ctx, tagName);
+    ctx->depth++;
+
+    // Lookup the tag replacement in the dictionary.
+    char *replacement = lookupTag(dict, tagName);
+    if (replacement == NULL) {
+        error("Tag not found");
+    }
+
+    // If the replacement string itself contains tags, process it recursively.
+    if (containsTag(replacement, TAG_START)) {
+        char *temp = processInput(replacement, ctx, dict);
+        // Assume processInput returns a new dynamically allocated string.
+        free(replacement);  // Free the original if it was dynamically allocated.
+        replacement = temp;
+    }
+    
+    // Remove the tag from the active list and decrement recursion depth.
+    removeActiveTag(ctx, tagName);
+    ctx->depth--;
+
+    return replacement;  // Return a dynamically allocated string.
+}
+
+// -- Helper Functions --
+
+// isTagActive:
+// Returns 1 if tagName is already in ctx->activeTags; otherwise, returns 0.
+int isTagActive(RecursionContext *ctx, const char *tagName) {
+    for (int i = 0; i < ctx->activeCount; i++) {
+        if (strcmp(ctx->activeTags[i], tagName) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// addActiveTag:
+// Adds tagName to the activeTags array in the context.
+void addActiveTag(RecursionContext *ctx, const char *tagName) {
+    ctx->activeTags = realloc(ctx->activeTags, sizeof(char*) * (ctx->activeCount + 1));
+    ctx->activeTags[ctx->activeCount] = strdup(tagName);
+    ctx->activeCount++;
+}
+
+// removeActiveTag:
+// Removes tagName from the activeTags array.
+void removeActiveTag(RecursionContext *ctx, const char *tagName) {
+    for (int i = 0; i < ctx->activeCount; i++) {
+        if (strcmp(ctx->activeTags[i], tagName) == 0) {
+            free(ctx->activeTags[i]);
+            // Shift remaining tags left.
+            for (int j = i; j < ctx->activeCount - 1; j++) {
+                ctx->activeTags[j] = ctx->activeTags[j + 1];
+            }
+            ctx->activeCount--;
+            break;
+        }
+    }
+    // Optionally, shrink the allocation for activeTags.
+}
+
+// lookupTag:
+// Searches the dictionary for tagName and returns a copy of the replacement string.
+char* lookupTag(TagDictionary *dict, const char *tagName) {
+    for (int i = 0; i < dict->count; i++) {
+        if (strcmp(dict->tags[i].name, tagName) == 0) {
+            // Return a duplicated string (caller must free).
+            return strdup(dict->tags[i].replacement);
+        }
+    }
+    return NULL;  // Tag not found.
+}
+
+// appendToBuffer:
+// Appends text to a dynamically allocated string buffer. (Pseudo-code: implementation details omitted.)
+void appendToBuffer(char **buffer, const char *text) {
+    // 1. Determine new size = strlen(*buffer) + strlen(text) + 1.
+    // 2. Reallocate *buffer to the new size.
+    // 3. Concatenate text to *buffer.
+    // (Implement error checking as needed.)
+}
+
+/*
+ * Additional helper functions (which are assumed to be implemented):
+ * - allocateBuffer(): Allocates and returns an empty dynamic string buffer.
+ * - matches(input, pos, pattern): Checks if the input at position pos starts with the pattern.
+ * - extractTagName(input, &pos, TAG_START, TAG_END): Extracts the tag name between delimiters and advances pos.
+ * - extractPlainText(input, &pos, TAG_START): Extracts plain text until the next occurrence of TAG_START and advances pos.
+ * - containsTag(text, TAG_START): Returns true if the text contains the tag start delimiter.
+ * - error(message): Handles error reporting (could exit or return an error code).
+ *
+ * Note: This pseudo-code abstracts many lower-level details (like dynamic memory management)
+ * for clarity. In an actual C implementation, robust error checking, memory allocation,
+ * and buffer management would be essential.
+ */
+
+
