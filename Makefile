@@ -1,50 +1,44 @@
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L
+CC := gcc
+CFLAGS := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L
 
 # Directories
-SRC_DIR = .
-OBJ_DIR = object
-BIN_DIR = binary
+SRC_DIR := .
+OBJ_DIR := object
+BIN_DIR := binary
 
-# All source files in the source directory
-SRCS = $(wildcard $(SRC_DIR)/*.c)
+# Static library settings
+LIB_NAME := tagger
+LIB := $(BIN_DIR)/lib$(LIB_NAME).a
+LIB_SRCS := $(wildcard $(SRC_DIR)/*_lib.c)
+LIB_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(LIB_SRCS))
 
-# main.c is the source for the executable
-MAIN_SRC = main.c
-
-# Library sources are all sources except main.c
-LIB_SRCS = $(filter-out $(MAIN_SRC), $(SRCS))
-
-# Object files for main and library sources (placed in OBJ_DIR)
-MAIN_OBJ = $(OBJ_DIR)/main.o
-LIB_OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(LIB_SRCS))
-
-# Final targets: executable and static library (placed in BIN_DIR)
-EXE = $(BIN_DIR)/main
-LIB = $(BIN_DIR)/libtagger.a
+# Script/executable sources: all .c files except *_lib.c
+SCRIPT_SRCS := $(filter-out $(LIB_SRCS),$(wildcard $(SRC_DIR)/*.c))
+SCRIPT_EXES := $(patsubst $(SRC_DIR)/%.c,$(BIN_DIR)/%,$(SCRIPT_SRCS))
 
 .PHONY: all clean
+.SECONDARY:
 
-# Default target builds the executable
-all: $(EXE)
+# Default target: build library and all scripts
+all: $(LIB) $(SCRIPT_EXES)
 
-# Link the main object with the static library to produce the executable
-$(EXE): $(MAIN_OBJ) $(LIB)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(MAIN_OBJ) $(LIB) -o $(EXE)
-
-# Build the static library from the library object files
+# Build static library
 $(LIB): $(LIB_OBJS)
 	@mkdir -p $(BIN_DIR)
-	ar rcs $(LIB) $(LIB_OBJS)
+	ar rcs $@ $^
 
-# Compile any .c file to an object file in OBJ_DIR
-$(OBJ_DIR)/%.o: %.c
+# Build scripts/executables
+$(BIN_DIR)/%: $(OBJ_DIR)/%.o $(LIB)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $< $(LIB) -o $@
+
+# Compile sources to object files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean up generated files by removing the binary and object directories
+# Clean build artifacts
 clean:
-	rm -rf $(BIN_DIR) $(OBJ_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
