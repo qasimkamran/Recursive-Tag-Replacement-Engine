@@ -3,15 +3,15 @@
 A lightweight C library for processing templated strings with tags (e.g. `{{name}}`) and replacing them with user-defined values.
 
 ## Table of Contents
-1. Installation(#installation)
-2. Usage(#usage)
-3. API Reference(#api-reference)
-   1. Constants(#constants)
-   2. Types(#types)
-   3. tagger_lib(#tagger_lib)
-   4. util_lib(#util_lib)
-4. Examples(#examples)
-5. License(#license)
+1. [Installation](#installation)
+2. [Usage](#usage)
+3. [API Reference](#api-reference)
+   - [Constants](#constants)
+   - [Types](#types)
+   - [tagger_lib](#tagger_lib)
+   - [util_lib](#util_lib)
+4. [Examples](#examples)
+5. [License](#license)
 
 ## Installation
 
@@ -27,7 +27,7 @@ A lightweight C library for processing templated strings with tags (e.g. `{{name
 
 ## Usage
 
-I have found much use for the library in enabling automation when writing long test files with dense and repetitive natual language like syntax, especially where using these sorts of files is not optional and tedious.
+I have found this library useful for automating the writing of long test files with dense, repetitive, natural-language-like syntax, especially when working with such files is tedious but unavoidable.
 
 ## API Reference
 
@@ -243,7 +243,9 @@ void AppendToBuffer(
 - **Description**: Append `Text` to the end of `*Buffer`, reallocating if necessary
 - **Parameters**:
   - `Buffer` (`char**`): Pointer to buffer pointer
-  - `Text` (`const char#### Error
+  - `Text` (`const char*`): Text to append
+
+#### Error
 ```c
 void Error(
     const char* Message
@@ -255,8 +257,8 @@ void Error(
 
 ## Examples
 
-Yet to be added, only current example that can be shared is written in main.c
+To be added. The only example currently available is in main.c.
 
 ## License
 
-Not sure how these work yet.
+Not sure how licenses work yet.
