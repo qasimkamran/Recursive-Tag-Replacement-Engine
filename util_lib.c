@@ -2,10 +2,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#include <unistd.h>
 
-void Error( const char* Message )
+void PrintProgressBar( double Fraction )
+{
+    int Completed = (int)( Fraction * PROGRESS_BAR_WIDTH );
+
+    int Index;
+
+    printf("\r[");
+
+    for( Index = 0; Index < Completed; ++Index )
+    {
+        putchar('=');
+    }
+
+    if( Completed < PROGRESS_BAR_WIDTH )
+    {
+        putchar('>');
+        for( Index = Completed + 1; Index < PROGRESS_BAR_WIDTH; ++Index )
+        {
+            putchar(' ');
+        }
+    }
+    else
+    {
+        putchar('=');
+    }
+
+    printf( "] %3.0f%%", Fraction * 100.0 );
+    fflush( stdout );
+}
+
+void PrintError( const char* Message )
 {
     perror( Message );
+}
+
+void StandardError( const char *Format, ... )
+{
+    va_list Args;
+    va_start( Args, Format );
+
+    vfprintf( stderr, Format, Args );
+
+    va_end( Args );
 }
 
 char* AllocateBuffer( size_t BufferSize )
@@ -14,7 +56,7 @@ char* AllocateBuffer( size_t BufferSize )
 
     if( Buffer == NULL )
     {
-        Error( "Failed to allocate memory to string buffer" );
+        PrintError( "Failed to allocate memory to string buffer" );
         return NULL;
     }
 
@@ -34,7 +76,7 @@ void AppendToBuffer( char **Buffer, const char *Text )
     char* NewBuffer = (char*) realloc( *Buffer, ( CurrentLength + TextLength + 1 ) * sizeof(char) );
     if( NewBuffer == NULL )
     {
-        Error( "Failed to reallocate memory" );
+        PrintError( "Failed to reallocate memory" );
         return;
     }
 

@@ -69,14 +69,14 @@ void AddActiveTag( RecursionContext *Ctx, const char *TagName )
 
     if( Ctx->ActiveTags == NULL )
     {
-        Error( "Failed to reallocate memory" );
+        PrintError( "Failed to reallocate memory" );
         return;
     }
 
     Ctx->ActiveTags[Ctx->ActiveCount] = strdup( TagName );
     if( Ctx->ActiveTags[Ctx->ActiveCount] == NULL )
     {
-        Error( "Failed to duplicate active tag name" );
+        PrintError( "Failed to duplicate active tag name" );
         return;
     }
     Ctx->ActiveCount++;

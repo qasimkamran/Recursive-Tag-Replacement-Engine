@@ -13,6 +13,8 @@ LIB := $(BIN_DIR)/lib$(LIB_NAME).a
 LIB_SRCS := $(wildcard $(SRC_DIR)/*_lib.c)
 LIB_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(LIB_SRCS))
 
+LDLIBS += -lm
+
 # Script/executable sources: all .c files except *_lib.c
 SCRIPT_SRCS := $(filter-out $(LIB_SRCS),$(wildcard $(SRC_DIR)/*.c))
 SCRIPT_EXES := $(patsubst $(SRC_DIR)/%.c,$(BIN_DIR)/%,$(SCRIPT_SRCS))
@@ -31,7 +33,7 @@ $(LIB): $(LIB_OBJS)
 # Build scripts/executables
 $(BIN_DIR)/%: $(OBJ_DIR)/%.o $(LIB)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $< $(LIB) -o $@
+	$(CC) $< $(LIB) $(LDLIBS) -o $@
 
 # Compile sources to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c

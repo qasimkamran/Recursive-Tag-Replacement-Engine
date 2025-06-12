@@ -1,6 +1,9 @@
 #include <stddef.h>
 
 #define BUFFER_SIZE 32
+#define PROGRESS_BAR_WIDTH 50
+
+void PrintProgressBar( double Fraction );
 
 char* AllocateBuffer( size_t BufferSize );
 
@@ -14,5 +17,7 @@ int ContainsTag( const char* Text, const char* TagStart );
 
 void AppendToBuffer( char** Buffer, const char* Text );
 
-void Error( const char* Messsage );
+void PrintError( const char* Messsage );
+
+void StandardError( const char *Format, ... );
 
