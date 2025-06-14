@@ -1,4 +1,5 @@
 #include "util_lib.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,22 +67,63 @@ char* AllocateBuffer( size_t BufferSize )
     return Buffer;
 }
 
-void AppendToBuffer( char **Buffer, const char *Text )
+void BufferInit( Buffer *Buf )
+{
+    Buf->Data = NULL;
+    Buf->Length = 0;
+    Buf->Capacity = 0;
+}
+
+void BufferFree( Buffer *Buf )
+{
+    free( Buf->Data );
+    Buf->Data = NULL;
+    Buf->Length = Buf->Capacity = 0;
+}
+
+int BufferReserve( Buffer *Buf, size_t Capacity )
+{
+    char* Ptr = realloc( Buf->Data, Capacity );
+    
+    if( !Ptr ) return 0;
+    
+    Buf->Data = Ptr;
+    Buf->Capacity = Capacity;
+    Buf->Length = 0;
+    Buf->Data[0] = '\0';
+
+    return 1;
+}
+
+void AppendToBuffer( Buffer* Buf, const char *Text )
 {
     if( Text == NULL ) return;
 
-    size_t CurrentLength = *Buffer ? strlen( *Buffer ) : 0;
     size_t TextLength = strlen( Text );
+    size_t NeededSize = Buf->Length + TextLength + 1;
 
-    char* NewBuffer = (char*) realloc( *Buffer, ( CurrentLength + TextLength + 1 ) * sizeof(char) );
-    if( NewBuffer == NULL )
+    if( NeededSize >  Buf->Capacity )
     {
-        PrintError( "Failed to reallocate memory" );
-        return;
+        size_t NewCapacity = Buf->Capacity ? Buf->Capacity : 1;
+        while( NewCapacity < NeededSize )
+        {
+            NewCapacity <<= 1;
+        }
+
+        char* Ptr = realloc( Buf->Data, NewCapacity );
+
+        if( !Ptr )
+        {
+            StandardError( "Ran out of memory\n" );
+            return;
+        }
+
+        Buf->Data = Ptr;
+        Buf->Capacity = NewCapacity;
     }
 
-    *Buffer = NewBuffer;
-    strcpy( *Buffer + CurrentLength, Text );
+    memcpy( Buf->Data + Buf->Length, Text, TextLength + 1 );
+    Buf->Length += TextLength;
 }
 
 int Matches( const char *Input, int Pos, const char *Pattern )

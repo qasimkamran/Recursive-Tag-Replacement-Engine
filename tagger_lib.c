@@ -117,7 +117,14 @@ char* ResolveTag( const char *TagName, RecursionContext *Ctx, TagDictionary *Dic
 
 char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dict )
 {
-    char* Result = AllocateBuffer( BUFFER_SIZE + 1 );
+    Buffer Result;
+    BufferInit( &Result );
+
+    if( !BufferReserve( &Result, BUFFER_SIZE + 1 ) )
+    {
+        PrintError( "Failed initial allocation\n" );
+        return NULL;
+    }
 
     int Pos = 0;
     int InputLength = strlen( Input );
@@ -142,6 +149,6 @@ char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dic
         }
     }
 
-    return Result;
+    return Result.Data;
 }
 

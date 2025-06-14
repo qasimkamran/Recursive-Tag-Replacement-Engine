@@ -15,10 +15,11 @@ char* GetDiagnosticString_AppendToBuffer( long N, int L )
     struct timespec T0, T1;
     clock_gettime( CLOCK_MONOTONIC, &T0 );
 
-    char* Buffer = NULL;
+    Buffer Buf;
+    BufferInit( &Buf );
     for( long Index = 0; Index < N; Index++ )
     {
-        AppendToBuffer( &Buffer, Text );
+        AppendToBuffer( &Buf, Text );
     }
 
     clock_gettime( CLOCK_MONOTONIC, &T1 );
@@ -27,7 +28,7 @@ char* GetDiagnosticString_AppendToBuffer( long N, int L )
     char* OutputString = AllocateBuffer( BUFFER_SIZE + 1 );
     snprintf( OutputString, BUFFER_SIZE + 1, "%ld,%d,%.6f\n", N, L, Elapsed );
 
-    free( Buffer );
+    BufferFree( &Buf );
     free( Text );
 
     return OutputString;
@@ -62,7 +63,7 @@ int BENCHMARK_AppendToBuffer( long N_Max, int L_Max )
 
             Fraction++;
 
-            PrintProgressBar( Fraction / ( N_Max * L_Max ) );
+            PrintProgressBar( ( Fraction / ( N_Max * L_Max ) ) * 100 );
         }
     }
     printf("\n");

@@ -1,6 +1,6 @@
 # Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L
+CFLAGS := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L -g
 
 # Directories
 SRC_DIR := .
