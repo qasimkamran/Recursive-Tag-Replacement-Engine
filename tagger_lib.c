@@ -69,14 +69,14 @@ void AddActiveTag( RecursionContext *Ctx, const char *TagName )
 
     if( Ctx->ActiveTags == NULL )
     {
-        Error( "Failed to reallocate memory" );
+        PrintError( "Failed to reallocate memory" );
         return;
     }
 
     Ctx->ActiveTags[Ctx->ActiveCount] = strdup( TagName );
     if( Ctx->ActiveTags[Ctx->ActiveCount] == NULL )
     {
-        Error( "Failed to duplicate active tag name" );
+        PrintError( "Failed to duplicate active tag name" );
         return;
     }
     Ctx->ActiveCount++;
@@ -117,7 +117,14 @@ char* ResolveTag( const char *TagName, RecursionContext *Ctx, TagDictionary *Dic
 
 char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dict )
 {
-    char* Result = AllocateBuffer( BUFFER_SIZE + 1 );
+    DynamicBuffer Result;
+    DynamicBufferInit( &Result );
+
+    if( !DynamicBufferReserve( &Result, BUFFER_SIZE + 1 ) )
+    {
+        PrintError( "Failed initial allocation\n" );
+        return NULL;
+    }
 
     int Pos = 0;
     int InputLength = strlen( Input );
@@ -129,7 +136,7 @@ char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dic
 
             char* Replacement = ResolveTag( TagName, Ctx, Dict );
 
-            AppendToBuffer( &Result, Replacement );
+            AppendToDynamicBuffer( &Result, Replacement );
 
             free( TagName );
             free( Replacement );
@@ -137,11 +144,11 @@ char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dic
         else
         {
             char* PlainText = ExtractPlainText( Input, &Pos, START_TAG ); 
-            AppendToBuffer( &Result, PlainText );
+            AppendToDynamicBuffer( &Result, PlainText );
             free( PlainText );
         }
     }
 
-    return Result;
+    return Result.Data;
 }
 

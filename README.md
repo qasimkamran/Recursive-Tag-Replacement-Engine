@@ -25,9 +25,19 @@ A lightweight C library for processing templated strings with tags (e.g. `{{name
    make
    ```
 
+   The build includes debug symbols by default (using `-g` in `CFLAGS`). To build without debug symbols, edit the `CFLAGS` variable in the `Makefile`.
+
 ## Usage
 
-I have found this library useful for automating the writing of long test files with dense, repetitive, natural-language-like syntax, especially when working with such files is tedious but unavoidable.
+After building, the executables are located in the `binary/` directory. You can run the example program and the performance benchmark:
+
+```bash
+./binary/main
+# Output: Hello, Qasim! Welcome to example.com.
+
+./binary/benchmark
+# Displays a progress bar and writes timing data to benchmarks/BENCHMARK_AppendToBuffer.csv
+```
 
 ## API Reference
 
@@ -162,102 +172,85 @@ char* LookupTag(
 
 ### util_lib
 
-#### AllocateBuffer
+#### Types
 ```c
-char* AllocateBuffer(
-    size_t BufferSize
-);
-```
-- **Description**: Allocate and initialize a buffer of at least `BufferSize` bytes
-- **Parameters**:
-  - `BufferSize` (`size_t`)
-- **Returns**: (`char*`) Pointer to zero-initialized buffer; caller must free
+typedef struct {
+    char *Data;      // Pointer to buffer data
+    size_t Length;   // Current length of data
+    size_t Capacity; // Allocated capacity
+} DynamicBuffer;
 
-#### Matches
-```c
-int Matches(
-    const char* Input,
-    int Pos,
-    const char* Pattern
-);
+typedef enum {
+    ALLOC_NONE,     // No initialization
+    ALLOC_MEMSET,   // Zero-initialize via memset
+    ALLOC_CALLOC    // Allocate and clear memory
+} AllocPolicy;
 ```
-- **Description**: Check if `Pattern` matches `Input` starting at `Pos`
-- **Parameters**:
-  - `Input` (`const char*`)
-  - `Pos` (`int`)
-  - `Pattern` (`const char*`)
-- **Returns**: (`int`) Non-zero if matches, zero otherwise
 
-#### ExtractTagName
-```c
-char* ExtractTagName(
-    const char* Input,
-    int* Pos,
-    const char* TagStart,
-    const char* TagEnd
-);
-```
-- **Description**: Extract the tag name between `TagStart` and `TagEnd` from `Input`; updates `Pos`
-- **Parameters**:
-  - `Input` (`const char*`)
-  - `Pos` (`int*`)
-  - `TagStart` (`const char*`)
-  - `TagEnd` (`const char*`)
-- **Returns**: (`char*`) Extracted tag name; caller must free
+#### Constants
+- `BUFFER_SIZE` (`int`): Default buffer size for utility operations (default: `32`).
+- `PROGRESS_BAR_WIDTH` (`int`): Width of the progress bar for `PrintProgressBar` (default: `50`).
 
-#### ExtractPlainText
-```c
-char* ExtractPlainText(
-    const char* Input,
-    int* Pos,
-    const char* TagStart
-);
-```
-- **Description**: Extract text from `Input` until `TagStart` is encountered; updates `Pos`
-- **Parameters**:
-  - `Input` (`const char*`)
-  - `Pos` (`int*`)
-  - `TagStart` (`const char*`)
-- **Returns**: (`char*`) Extracted text; caller must free
+#### Functions
+- `void PrintProgressBar(double Fraction);`
+  - Description: Render a progress bar to stdout for the given fraction (0.0–1.0).
 
-#### ContainsTag
-```c
-int ContainsTag(
-    const char* Text,
-    const char* TagStart
-);
-```
-- **Description**: Determine if `Text` contains the substring `TagStart`
-- **Parameters**:
-  - `Text` (`const char*`)
-  - `TagStart` (`const char*`)
-- **Returns**: (`int`) Non-zero if found, zero otherwise
+- `void PrintError(const char* Message);`
+  - Description: Print an error message using `perror`.
 
-#### AppendToBuffer
-```c
-void AppendToBuffer(
-    char** Buffer,
-    const char* Text
-);
-```
-- **Description**: Append `Text` to the end of `*Buffer`, reallocating if necessary
-- **Parameters**:
-  - `Buffer` (`char**`): Pointer to buffer pointer
-  - `Text` (`const char*`): Text to append
+- `void StandardError(const char* Format, ...);`
+  - Description: Print a formatted error message to `stderr`.
 
-#### Error
-```c
-void Error(
-    const char* Message
-);
-```
-- **Description**: Print or handle an error with the given `Message` and exit if necessary
-- **Parameters**:
-  - `Message` (`const char*`)
+- `char* AllocateBuffer(size_t BufferSize, AllocPolicy Policy);`
+  - Description: Allocate a buffer with the specified size and initialization policy.
+  - Parameters:
+    - `BufferSize` (`size_t`): Minimum size of the buffer in bytes.
+    - `Policy` (`AllocPolicy`): Allocation policy (`ALLOC_NONE`, `ALLOC_MEMSET`, or `ALLOC_CALLOC`).
+  - Returns: Pointer to the allocated buffer or `NULL` on failure (caller must free).
+
+- `void DynamicBufferInit(DynamicBuffer* Buf);`
+  - Description: Initialize an empty `DynamicBuffer`.
+
+- `void DynamicBufferFree(DynamicBuffer* Buf);`
+  - Description: Release resources held by `DynamicBuffer`.
+
+- `int DynamicBufferReserve(DynamicBuffer* Buf, size_t Capacity);`
+  - Description: Ensure `Buf` has at least `Capacity` bytes allocated; returns non-zero on success.
+
+- `void AppendToDynamicBuffer(DynamicBuffer* Buf, const char* Text);`
+  - Description: Append `Text` to `Buf`, growing capacity exponentially as needed.
+
+- `int Matches(const char* Input, int Pos, const char* Pattern);`
+  - Description: Check if `Pattern` matches `Input` starting at `Pos`.
+
+- `char* ExtractTagName(const char* Input, int* Pos, const char* TagStart, const char* TagEnd);`
+  - Description: Extract the tag name between `TagStart` and `TagEnd` from `Input`; updates `Pos`.
+
+- `char* ExtractPlainText(const char* Input, int* Pos, const char* TagStart);`
+  - Description: Extract text from `Input` until `TagStart` is encountered; updates `Pos`.
+
+- `int ContainsTag(const char* Text, const char* TagStart);`
+  - Description: Determine if `Text` contains the substring `TagStart`.
 
 ## Examples
 
-To be added. The only example currently available is in main.c.
+### Basic Example
+
+After building, run the main example program:
+
+```bash
+./binary/main
+# Output: Hello, Qasim! Welcome to example.com.
+```
+
+### Benchmark
+
+Run the performance benchmark to measure buffer append times:
+
+```bash
+./binary/benchmark
+# Displays a progress bar and writes timing data to benchmarks/BENCHMARK_AppendToBuffer.csv
+```
 
 ## License
 
