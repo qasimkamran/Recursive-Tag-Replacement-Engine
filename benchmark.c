@@ -15,20 +15,20 @@ char* GetDiagnosticString_AppendToBuffer( long N, int L )
     struct timespec T0, T1;
     clock_gettime( CLOCK_MONOTONIC, &T0 );
 
-    Buffer Buf;
-    BufferInit( &Buf );
+    DynamicBuffer Buf;
+    DynamicBufferInit( &Buf );
     for( long Index = 0; Index < N; Index++ )
     {
-        AppendToBuffer( &Buf, Text );
+        AppendToDynamicBuffer( &Buf, Text );
     }
 
     clock_gettime( CLOCK_MONOTONIC, &T1 );
     double Elapsed = ( T1.tv_sec - T0.tv_sec ) + ( T1.tv_nsec - T0.tv_nsec ) / 1e9;
 
-    char* OutputString = AllocateBuffer( BUFFER_SIZE + 1 );
+    char* OutputString = AllocateBuffer( BUFFER_SIZE + 1, ALLOC_NONE );
     snprintf( OutputString, BUFFER_SIZE + 1, "%ld,%d,%.6f\n", N, L, Elapsed );
 
-    BufferFree( &Buf );
+    DynamicBufferFree( &Buf );
     free( Text );
 
     return OutputString;

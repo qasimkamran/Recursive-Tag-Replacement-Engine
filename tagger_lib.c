@@ -117,10 +117,10 @@ char* ResolveTag( const char *TagName, RecursionContext *Ctx, TagDictionary *Dic
 
 char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dict )
 {
-    Buffer Result;
-    BufferInit( &Result );
+    DynamicBuffer Result;
+    DynamicBufferInit( &Result );
 
-    if( !BufferReserve( &Result, BUFFER_SIZE + 1 ) )
+    if( !DynamicBufferReserve( &Result, BUFFER_SIZE + 1 ) )
     {
         PrintError( "Failed initial allocation\n" );
         return NULL;
@@ -136,7 +136,7 @@ char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dic
 
             char* Replacement = ResolveTag( TagName, Ctx, Dict );
 
-            AppendToBuffer( &Result, Replacement );
+            AppendToDynamicBuffer( &Result, Replacement );
 
             free( TagName );
             free( Replacement );
@@ -144,7 +144,7 @@ char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dic
         else
         {
             char* PlainText = ExtractPlainText( Input, &Pos, START_TAG ); 
-            AppendToBuffer( &Result, PlainText );
+            AppendToDynamicBuffer( &Result, PlainText );
             free( PlainText );
         }
     }

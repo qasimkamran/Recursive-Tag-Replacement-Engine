@@ -8,17 +8,24 @@ typedef struct
     char *Data;
     size_t Length;
     size_t Capacity;
-} Buffer;
+} DynamicBuffer;
+
+typedef enum
+{
+    ALLOC_NONE,
+    ALLOC_MEMSET,
+    ALLOC_CALLOC
+} AllocPolicy;
 
 void PrintProgressBar( double Fraction );
 
-void BufferInit( Buffer* Buf );
+void DynamicBufferInit( DynamicBuffer* Buf );
 
-void BufferFree( Buffer* Buf );
+void DynamicBufferFree( DynamicBuffer* Buf );
 
-int BufferReserve( Buffer* Buf, size_t Capacity );
+int DynamicBufferReserve( DynamicBuffer* Buf, size_t Capacity );
 
-char* AllocateBuffer( size_t BufferSize );
+char* AllocateBuffer( size_t BufferSize, AllocPolicy Policy );
 
 int Matches( const char* Input, int Pos, const char* Pattern );
 
@@ -28,7 +35,7 @@ char* ExtractPlainText( const char* Input, int* Pos, const char* TagStart );
 
 int ContainsTag( const char* Text, const char* TagStart );
 
-void AppendToBuffer( Buffer* Buf, const char* Text );
+void AppendToDynamicBuffer( DynamicBuffer* Buf, const char* Text );
 
 void PrintError( const char* Messsage );
 

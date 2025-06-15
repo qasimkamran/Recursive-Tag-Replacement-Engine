@@ -51,9 +51,20 @@ void StandardError( const char *Format, ... )
     va_end( Args );
 }
 
-char* AllocateBuffer( size_t BufferSize )
+char* AllocateBuffer( size_t BufferSize, AllocPolicy Policy )
 {
-    char* Buffer = (char*)malloc( BufferSize * sizeof(char) );
+    char* Buffer = NULL;
+
+    if( Policy == ALLOC_CALLOC )
+        Buffer = (char*)calloc( 1, BufferSize );
+    else
+    {
+        Buffer = (char*)malloc( BufferSize );
+        if( Buffer && Policy == ALLOC_MEMSET )
+        {
+            memset( Buffer, 0, BufferSize );
+        }
+    }
 
     if( Buffer == NULL )
     {
@@ -61,27 +72,24 @@ char* AllocateBuffer( size_t BufferSize )
         return NULL;
     }
 
-    for( size_t Index = 0; Index < BufferSize; Index++ )
-        Buffer[Index] = '\0';
-
     return Buffer;
 }
 
-void BufferInit( Buffer *Buf )
+void DynamicBufferInit( DynamicBuffer* Buf )
 {
     Buf->Data = NULL;
     Buf->Length = 0;
     Buf->Capacity = 0;
 }
 
-void BufferFree( Buffer *Buf )
+void DynamicBufferFree( DynamicBuffer* Buf )
 {
     free( Buf->Data );
     Buf->Data = NULL;
     Buf->Length = Buf->Capacity = 0;
 }
 
-int BufferReserve( Buffer *Buf, size_t Capacity )
+int DynamicBufferReserve( DynamicBuffer* Buf, size_t Capacity )
 {
     char* Ptr = realloc( Buf->Data, Capacity );
     
@@ -95,7 +103,7 @@ int BufferReserve( Buffer *Buf, size_t Capacity )
     return 1;
 }
 
-void AppendToBuffer( Buffer* Buf, const char *Text )
+void AppendToDynamicBuffer( DynamicBuffer* Buf, const char *Text )
 {
     if( Text == NULL ) return;
 
@@ -166,7 +174,7 @@ char* ExtractTagName( const char *Input, int *Pos, const char *TagStart, const c
 
     size_t TagLength = EndPos - StartPos;
 
-    char* TagName = AllocateBuffer( TagLength + 1 );
+    char* TagName = AllocateBuffer( TagLength + 1, ALLOC_CALLOC );
     if( TagName == NULL )
         return NULL;
 
@@ -189,7 +197,7 @@ char* ExtractPlainText( const char* Input, int* Pos, const char* TagStart )
 
     size_t PlainTextLength = EndPos - ( Input + *Pos );
 
-    char* PlainText = AllocateBuffer( PlainTextLength + 1 );
+    char* PlainText = AllocateBuffer( PlainTextLength + 1, ALLOC_CALLOC );
     if( PlainText == NULL )
         return NULL;
 
