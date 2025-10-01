@@ -56,3 +56,4 @@ benchmarks/
 
 # Ignore compiled binaries
 binary/
+tests/bin/
