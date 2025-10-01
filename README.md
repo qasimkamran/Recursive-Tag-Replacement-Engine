@@ -29,13 +29,13 @@ A lightweight C library for processing templated strings with tags (e.g. `{{name
 
 ## Usage
 
-After building, the executables are located in the `binary/` directory. You can run the example program and the performance benchmark:
+After building, the executables live in the `bin/` directory, and convenience symlinks are created at the repository root so you can run them directly:
 
 ```bash
-./binary/main
+./main
 # Output: Hello, Qasim! Welcome to example.com.
 
-./binary/benchmark
+./benchmark
 # Displays a progress bar and writes timing data to benchmarks/BENCHMARK_AppendToBuffer.csv
 ```
 
@@ -239,7 +239,7 @@ typedef enum {
 After building, run the main example program:
 
 ```bash
-./binary/main
+./main
 # Output: Hello, Qasim! Welcome to example.com.
 ```
 
@@ -248,7 +248,7 @@ After building, run the main example program:
 Run the performance benchmark to measure buffer append times:
 
 ```bash
-./binary/benchmark
+./benchmark
 # Displays a progress bar and writes timing data to benchmarks/BENCHMARK_AppendToBuffer.csv
 ```
 

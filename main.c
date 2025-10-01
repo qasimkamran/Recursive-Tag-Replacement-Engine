@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 int main()
 {
     const char *Input = "Hello, {{name}}! Welcome to {{site}}.";
@@ -30,3 +31,4 @@ int main()
 
     return 0;
 }
+

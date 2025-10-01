@@ -4,7 +4,9 @@
 #include <time.h>
 #include <math.h>
 
+
 #include "util_lib.h"
+
 
 char* GetDiagnosticString_AppendToBuffer( long N, int L )
 {
@@ -33,6 +35,7 @@ char* GetDiagnosticString_AppendToBuffer( long N, int L )
 
     return OutputString;
 }
+
 
 int BENCHMARK_AppendToBuffer( long N_Max, int L_Max )
 {
@@ -73,6 +76,7 @@ int BENCHMARK_AppendToBuffer( long N_Max, int L_Max )
     return 1;
 }
 
+
 int main()
 {
 
@@ -81,3 +85,4 @@ int main()
 
     return 0;
 }
+
