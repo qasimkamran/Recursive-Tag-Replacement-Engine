@@ -55,5 +55,8 @@ dkms.conf
 benchmarks/
 
 # Ignore compiled binaries
+bin/
 binary/
 tests/bin/
+main
+benchmark

@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
+
 void PrintProgressBar( double Fraction )
 {
     int Completed = (int)( Fraction * PROGRESS_BAR_WIDTH );
@@ -36,10 +37,12 @@ void PrintProgressBar( double Fraction )
     fflush( stdout );
 }
 
+
 void PrintError( const char* Message )
 {
     perror( Message );
 }
+
 
 void StandardError( const char *Format, ... )
 {
@@ -50,6 +53,7 @@ void StandardError( const char *Format, ... )
 
     va_end( Args );
 }
+
 
 char* AllocateBuffer( size_t BufferSize, AllocPolicy Policy )
 {
@@ -75,6 +79,7 @@ char* AllocateBuffer( size_t BufferSize, AllocPolicy Policy )
     return Buffer;
 }
 
+
 void DynamicBufferInit( DynamicBuffer* Buf )
 {
     Buf->Data = NULL;
@@ -82,12 +87,14 @@ void DynamicBufferInit( DynamicBuffer* Buf )
     Buf->Capacity = 0;
 }
 
+
 void DynamicBufferFree( DynamicBuffer* Buf )
 {
     free( Buf->Data );
     Buf->Data = NULL;
     Buf->Length = Buf->Capacity = 0;
 }
+
 
 int DynamicBufferReserve( DynamicBuffer* Buf, size_t Capacity )
 {
@@ -102,6 +109,7 @@ int DynamicBufferReserve( DynamicBuffer* Buf, size_t Capacity )
 
     return 1;
 }
+
 
 void AppendToDynamicBuffer( DynamicBuffer* Buf, const char *Text )
 {
@@ -134,6 +142,7 @@ void AppendToDynamicBuffer( DynamicBuffer* Buf, const char *Text )
     Buf->Length += TextLength;
 }
 
+
 int Matches( const char *Input, int Pos, const char *Pattern )
 {
     if( Input == NULL || Pos < 0 || Pattern == NULL )
@@ -156,6 +165,7 @@ int Matches( const char *Input, int Pos, const char *Pattern )
 
     return 1;
 }
+
 
 char* ExtractTagName( const char *Input, int *Pos, const char *TagStart, const char *TagEnd )
 {
@@ -185,6 +195,7 @@ char* ExtractTagName( const char *Input, int *Pos, const char *TagStart, const c
 
     return TagName;
 }
+
 
 char* ExtractPlainText( const char* Input, int* Pos, const char* TagStart )
 {

@@ -1,11 +1,14 @@
 #define _POSIX_C_SOURCE 200809L
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+
 #include "tagger_lib.h"
 #include "util_lib.h"
+
 
 int IsTagActive( RecursionContext *Ctx, const char *TagName )
 {
@@ -20,6 +23,7 @@ int IsTagActive( RecursionContext *Ctx, const char *TagName )
 
     return 0;
 }
+
 
 void RemoveActiveTag( RecursionContext *Ctx, const char *TagName )
 {
@@ -44,6 +48,7 @@ void RemoveActiveTag( RecursionContext *Ctx, const char *TagName )
     }
 }
 
+
 char* LookupTag( TagDictionary *Dict, const char *TagName )
 {
     if( Dict == NULL || TagName == NULL )
@@ -59,6 +64,7 @@ char* LookupTag( TagDictionary *Dict, const char *TagName )
 
     return NULL;
 }
+
 
 void AddActiveTag( RecursionContext *Ctx, const char *TagName )
 {
@@ -81,6 +87,7 @@ void AddActiveTag( RecursionContext *Ctx, const char *TagName )
     }
     Ctx->ActiveCount++;
 }
+
 
 char* ResolveTag( const char *TagName, RecursionContext *Ctx, TagDictionary *Dict )
 {
@@ -114,6 +121,7 @@ char* ResolveTag( const char *TagName, RecursionContext *Ctx, TagDictionary *Dic
     return NULL;
 
 } /* ResolveTag */
+
 
 char* ProcessInput( const char *Input, RecursionContext *Ctx, TagDictionary *Dict )
 {
