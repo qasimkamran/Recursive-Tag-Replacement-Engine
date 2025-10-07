@@ -1,257 +1,194 @@
-# Recursive Tag Replacement Engine
+# Recursive Tag Interpolation
 
-A lightweight C library for processing templated strings with tags (e.g. `{{name}}`) and replacing them with user-defined values.
+A small C library that expands `{{tag}}` placeholders inside strings, following nested references until every tag is resolved or a recursion safeguard kicks in. It ships with a sample executable, a micro-benchmark, and several repro programs that exercise tricky edge cases.
 
-## Table of Contents
-1. [Installation](#installation)
-2. [Usage](#usage)
-3. [API Reference](#api-reference)
-   - [Constants](#constants)
-   - [Types](#types)
-   - [tagger_lib](#tagger_lib)
-   - [util_lib](#util_lib)
-4. [Examples](#examples)
-5. [License](#license)
+## Features
+- Expands tags recursively while tracking active tags to break cycles and respect `MAX_RECURSION_DEPTH` (default 3).
+- Uses a growable buffer so callers do not need to guess the output size; `ProcessInput` hands back an owned `char*`.
+- Ships as a static library (`bin/libtagger.a`) plus convenience executables (`main`, `benchmark`).
+- Includes utilities (`util_lib.*`) for safe buffer management, formatted error reporting, and a terminal progress bar.
+- Provides self-contained repro programs under `tests/` that document current limitations and bugs.
 
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/qasimkamran/Recursive-Tag-Replacement-Engine.git
-   cd Recursive-Tag-Replacement-Engine
-   ```
-2. Build the library and executables:
-   ```bash
-   make
-   ```
-
-   The build includes debug symbols by default (using `-g` in `CFLAGS`). To build without debug symbols, edit the `CFLAGS` variable in the `Makefile`.
-
-## Usage
-
-After building, the executables live in the `bin/` directory, and convenience symlinks are created at the repository root so you can run them directly:
+## Build
+Requires a POSIX-ish toolchain with `gcc` (or another C11 compiler), `make`, and `ar`.
 
 ```bash
+make            # builds bin/libtagger.a and drops ./main + ./benchmark symlinks
+make clean      # removes build artefacts
+```
+
+Debug symbols are enabled by default (`-g`); edit `CFLAGS` in the top-level `Makefile` to change build flags.
+
+## Running The Samples
+```bash
 ./main
-# Output: Hello, Qasim! Welcome to example.com.
+# → Hello, Qasim! Welcome to example.com.
 
 ./benchmark
-# Displays a progress bar and writes timing data to benchmarks/BENCHMARK_AppendToBuffer.csv
+# → streams a progress bar and writes benchmarks/BENCHMARK_AppendToBuffer.csv
 ```
+
+The benchmark sweeps buffer sizes and append counts to measure the cost of repeated `AppendToDynamicBuffer` calls.
+
+## Using The Library In Your Code
+1. Include the public headers:
+   ```c
+   #include "tagger_lib.h"
+   #include "util_lib.h"
+   ```
+2. Populate a `TagDictionary` with `Tag { Name, Replacement }` pairs. Replacements may contain further tags.
+3. Initialise a `RecursionContext` (zeroed depth and active-tag tracking).
+4. Call `ProcessInput`, free the returned string when done.
+
+```c
+Tag tags[] = {
+    { "name", "Ada" },
+    { "greeting", "Hello, {{name}}!" },
+    { "site", "example.com" }
+};
+
+TagDictionary dict = { .Tags = tags, .Count = 3 };
+RecursionContext ctx = {0};
+
+char *output = ProcessInput("{{greeting}} Welcome to {{site}}.", &ctx, &dict);
+printf("%s\n", output);
+free(output);
+```
+
+Link against the static library produced in `bin/`:
+```bash
+gcc demo.c bin/libtagger.a -I. -lm -o demo
+```
+
+The tag delimiters default to `{{` / `}}`; override them by redefining `START_TAG` / `END_TAG` before including `tagger_lib.h` or by editing the header directly. Raise or lower `MAX_RECURSION_DEPTH` the same way.
 
 ## API Reference
 
 ### Constants
-- `START_TAG` (`char*`): Start tag delimiter (default: `"{{"`).
-- `END_TAG` (`char*`): End tag delimiter (default: `"}}"`).
-- `MAX_RECURSION_DEPTH` (`int`): Maximum nested tag resolution depth (default: `3`).
-- `BUFFER_SIZE` (`int`): Default buffer size for utility operations (default: `32`).
+- `START_TAG` (`char*`): Leading delimiter for tags (defaults to `"{{"`).
+- `END_TAG` (`char*`): Trailing delimiter for tags (defaults to `"}}"`).
+- `MAX_RECURSION_DEPTH` (`int`): Maximum nested tag resolution depth (defaults to `3`).
+- `BUFFER_SIZE` (`int`): Initial buffer size used throughout `util_lib` (defaults to `32`).
+- `PROGRESS_BAR_WIDTH` (`int`): Characters drawn by `PrintProgressBar` (defaults to `50`).
 
 ### Types
 
 #### Tag
 ```c
 typedef struct {
-    char* Name;         // The name of the tag (without delimiters)
-    char* Replacement;  // The replacement text for this tag
+    char *Name;        // tag name without delimiters
+    char *Replacement; // replacement text; may itself contain tags
 } Tag;
 ```
 
 #### TagDictionary
 ```c
 typedef struct {
-    Tag* Tags;   // Array of Tag entries
-    int  Count;  // Number of entries in the dictionary
+    Tag *Tags; // pointer to array of Tag entries
+    int  Count; // number of valid entries in Tags
 } TagDictionary;
 ```
 
 #### RecursionContext
 ```c
 typedef struct {
-    int    Depth;        // Current recursion depth
-    char** ActiveTags;   // Array of active tag names
-    int    ActiveCount;  // Number of active tags
+    int    Depth;       // current recursion depth
+    char **ActiveTags;  // dynamically-sized array of active tag names
+    int    ActiveCount; // number of active entries
 } RecursionContext;
+```
+
+#### DynamicBuffer
+```c
+typedef struct {
+    char   *Data;     // heap buffer (NULL until reserved)
+    size_t  Length;   // number of bytes currently used
+    size_t  Capacity; // number of bytes allocated
+} DynamicBuffer;
+```
+
+#### AllocPolicy
+```c
+typedef enum {
+    ALLOC_NONE,
+    ALLOC_MEMSET,
+    ALLOC_CALLOC
+} AllocPolicy;
 ```
 
 ### tagger_lib
 
-#### ProcessInput
-```c
-char* ProcessInput(
-    const char* Input,
-    RecursionContext* Ctx,
-    TagDictionary* Dict
-);
-```
-- **Description**: Process the input string, replacing tags using `Dict` and tracking nested resolution with `Ctx`
-- **Parameters**:
-  - `Input` (`const char*`): Input string containing tags
-  - `Ctx` (`RecursionContext*`): Initialized recursion context
-  - `Dict` (`TagDictionary*`): Dictionary of tags and their replacements
-- **Returns**: (`char*`) Newly allocated result string; caller must free
-- **Example**:
-  ```c
-  RecursionContext ctx = {0, NULL, 0};
-  TagDictionary dict = {/* initialize tags */};
-  char* result = ProcessInput("Hello, {{name}}!", &ctx, &dict);
-  // ... use result ...
-  free(result);
-  ```
+#### `char *ProcessInput(const char *Input, RecursionContext *Ctx, TagDictionary *Dict);`
+- Walks `Input`, expanding tags using `Dict` while tracking recursion in `Ctx`.
+- Returns a heap buffer owned by the caller (free with `free`).
+- Returns `NULL` if allocation fails or arguments are missing.
 
-#### ResolveTag
-```c
-char* ResolveTag(
-    const char* TagName,
-    RecursionContext* Ctx,
-    TagDictionary* Dict
-);
-```
-- **Description**: Resolve a single tag by name, handling recursion and lookup
-- **Parameters**:
-  - `TagName` (`const char*`): Name of the tag without delimiters
-  - `Ctx` (`RecursionContext*`): Current recursion context
-  - `Dict` (`TagDictionary*`): Dictionary of tag mappings
-- **Returns**: (`char*`) Allocated replacement string; caller must free
-- **Example**:
-  ```c
-  char* val = ResolveTag("site", &ctx, &dict);
-  // ...
-  free(val);
-  ```
+#### `char *ResolveTag(const char *TagName, RecursionContext *Ctx, TagDictionary *Dict);`
+- Resolves a single tag by name, recursively expanding nested tags.
+- Increments/decrements `Ctx->Depth` and updates the active-tag stack while expanding.
+- Returns a newly allocated string on success; caller frees it.
 
-#### IsTagActive
-```c
-int IsTagActive(
-    RecursionContext* Ctx,
-    const char* TagName
-);
-```
-- **Description**: Check if `TagName` is currently active in `Ctx`
-- **Parameters**:
-  - `Ctx` (`RecursionContext*`): Recursion context
-  - `TagName` (`const char*`): Tag name to check
-- **Returns**: (`int`) Non-zero if active, zero otherwise
+#### `int IsTagActive(RecursionContext *Ctx, const char *TagName);`
+- Checks if `TagName` is currently in the active-tag stack.
+- Returns `1` when active, `0` when inactive, and `-1` on invalid arguments.
 
-#### AddActiveTag
-```c
-void AddActiveTag(
-    RecursionContext* Ctx,
-    const char* TagName
-);
-```
-- **Description**: Mark `TagName` as active in `Ctx`
-- **Parameters**:
-  - `Ctx` (`RecursionContext*`)
-  - `TagName` (`const char*`)
+#### `void AddActiveTag(RecursionContext *Ctx, const char *TagName);`
+- Pushes `TagName` into the active-tag stack, reallocating as needed.
+- On allocation failure, logs an error and leaves the context unchanged.
 
-#### RemoveActiveTag
-```c
-void RemoveActiveTag(
-    RecursionContext* Ctx,
-    const char* TagName
-);
-```
-- **Description**: Remove `TagName` from the active list in `Ctx`
-- **Parameters**:
-  - `Ctx` (`RecursionContext*`)
-  - `TagName` (`const char*`)
+#### `void RemoveActiveTag(RecursionContext *Ctx, const char *TagName);`
+- Removes `TagName` from the active stack, shifting the remaining entries down.
+- Frees the stored tag copy and shrinks the array; safe to call even if the tag is absent.
 
-#### LookupTag
-```c
-char* LookupTag(
-    TagDictionary* Dict,
-    const char* TagName
-);
-```
-- **Description**: Lookup `TagName` in `Dict` and return its replacement (newly allocated)
-- **Parameters**:
-  - `Dict` (`TagDictionary*`)
-  - `TagName` (`const char*`)
-- **Returns**: (`char*`) Replacement text or `NULL` if not found
+#### `char *LookupTag(TagDictionary *Dict, const char *TagName);`
+- Scans the dictionary linearly and returns the stored replacement pointer.
+- Returns `NULL` when the tag does not exist; the caller must not free the result.
 
 ### util_lib
 
-#### Types
-```c
-typedef struct {
-    char *Data;      // Pointer to buffer data
-    size_t Length;   // Current length of data
-    size_t Capacity; // Allocated capacity
-} DynamicBuffer;
+#### Buffer helpers
+- `void DynamicBufferInit(DynamicBuffer *Buf);` — zeroes a buffer struct so it can be reserved later.
+- `int DynamicBufferReserve(DynamicBuffer *Buf, size_t Capacity);` — ensures `Buf` has at least `Capacity` bytes; resets `Length` to `0` on success.
+- `void AppendToDynamicBuffer(DynamicBuffer *Buf, const char *Text);` — appends `Text`, doubling capacity until it fits.
+- `void DynamicBufferFree(DynamicBuffer *Buf);` — releases the heap buffer and resets bookkeeping.
 
-typedef enum {
-    ALLOC_NONE,     // No initialization
-    ALLOC_MEMSET,   // Zero-initialize via memset
-    ALLOC_CALLOC    // Allocate and clear memory
-} AllocPolicy;
-```
+#### Allocation helpers
+- `char *AllocateBuffer(size_t BufferSize, AllocPolicy Policy);` — wraps `malloc`/`calloc` with optional clearing; caller frees the result.
 
-#### Constants
-- `BUFFER_SIZE` (`int`): Default buffer size for utility operations (default: `32`).
-- `PROGRESS_BAR_WIDTH` (`int`): Width of the progress bar for `PrintProgressBar` (default: `50`).
+#### Parsing helpers
+- `int Matches(const char *Input, int Pos, const char *Pattern);` — returns `1` when `Pattern` matches `Input` starting at `Pos`, `0` when it does not, `-1` on invalid parameters.
+- `char *ExtractTagName(const char *Input, int *Pos, const char *TagStart, const char *TagEnd);` — copies the tag name between delimiters and advances `*Pos` past the closing delimiter.
+- `char *ExtractPlainText(const char *Input, int *Pos, const char *TagStart);` — slices text until the next tag (or end of string) and advances `*Pos`.
+- `int ContainsTag(const char *Text, const char *TagStart);` — declared but currently unimplemented; see `tests/missing_contains_tag_implementation.c`.
 
-#### Functions
-- `void PrintProgressBar(double Fraction);`
-  - Description: Render a progress bar to stdout for the given fraction (0.0–1.0).
+#### Diagnostics
+- `void PrintProgressBar(double Fraction);` — renders a progress bar to stdout; expects `Fraction` between `0.0` and `1.0`.
+- `void PrintError(const char *Message);` — convenience wrapper around `perror`.
+- `void StandardError(const char *Format, ...);` — `stderr` printf-style helper using `va_list`.
 
-- `void PrintError(const char* Message);`
-  - Description: Print an error message using `perror`.
+## Repository Layout
+- `main.c` – minimal end-to-end example using the library
+- `benchmark.c` – synthetic workload for `AppendToDynamicBuffer`
+- `tagger_lib.*` – core tag expansion logic and recursion guards
+- `util_lib.*` – buffer utilities, error helpers, progress bar
+- `benchmarks/` – CSV output from the benchmark runner
+- `tests/` – focused repro programs (`make -C tests`, `make -C tests test-all`)
 
-- `void StandardError(const char* Format, ...);`
-  - Description: Print a formatted error message to `stderr`.
+## Known Gaps & Repro Programs
+The binaries in `tests/` capture issues that still need attention:
+- `missing_contains_tag_implementation` highlights the stubbed-out `ContainsTag` helper.
+- `active_tag_removal_shift_bug` shows that removing an active tag leaks/reshuffles the array incorrectly.
+- `lost_pointer_when_realloc_fails` forces `realloc` failure to demonstrate the missing rollback path in `AddActiveTag`.
+- `progress_bar_scaling_error` documents the progress bar’s incorrect percentage math when fed large fractions.
 
-- `char* AllocateBuffer(size_t BufferSize, AllocPolicy Policy);`
-  - Description: Allocate a buffer with the specified size and initialization policy.
-  - Parameters:
-    - `BufferSize` (`size_t`): Minimum size of the buffer in bytes.
-    - `Policy` (`AllocPolicy`): Allocation policy (`ALLOC_NONE`, `ALLOC_MEMSET`, or `ALLOC_CALLOC`).
-  - Returns: Pointer to the allocated buffer or `NULL` on failure (caller must free).
-
-- `void DynamicBufferInit(DynamicBuffer* Buf);`
-  - Description: Initialize an empty `DynamicBuffer`.
-
-- `void DynamicBufferFree(DynamicBuffer* Buf);`
-  - Description: Release resources held by `DynamicBuffer`.
-
-- `int DynamicBufferReserve(DynamicBuffer* Buf, size_t Capacity);`
-  - Description: Ensure `Buf` has at least `Capacity` bytes allocated; returns non-zero on success.
-
-- `void AppendToDynamicBuffer(DynamicBuffer* Buf, const char* Text);`
-  - Description: Append `Text` to `Buf`, growing capacity exponentially as needed.
-
-- `int Matches(const char* Input, int Pos, const char* Pattern);`
-  - Description: Check if `Pattern` matches `Input` starting at `Pos`.
-
-- `char* ExtractTagName(const char* Input, int* Pos, const char* TagStart, const char* TagEnd);`
-  - Description: Extract the tag name between `TagStart` and `TagEnd` from `Input`; updates `Pos`.
-
-- `char* ExtractPlainText(const char* Input, int* Pos, const char* TagStart);`
-  - Description: Extract text from `Input` until `TagStart` is encountered; updates `Pos`.
-
-- `int ContainsTag(const char* Text, const char* TagStart);`
-  - Description: Determine if `Text` contains the substring `TagStart`.
-
-## Examples
-
-### Basic Example
-
-After building, run the main example program:
-
+Run them from the repo root after building:
 ```bash
-./main
-# Output: Hello, Qasim! Welcome to example.com.
+make -C tests
+./tests/active_tag_removal_shift_bug
 ```
 
-### Benchmark
-
-Run the performance benchmark to measure buffer append times:
-
-```bash
-./benchmark
-# Displays a progress bar and writes timing data to benchmarks/BENCHMARK_AppendToBuffer.csv
-```
+## Contributing
+Issues and PRs that improve memory safety, finish unimplemented helpers, or add tests are welcome. Please keep the public API in `tagger_lib.h` backward compatible whenever possible.
 
 ## License
-
-Not sure how licenses work yet.
+No license has been chosen yet. Until one is added, treat the code as "all rights reserved" and ask before reusing it.
