@@ -1,6 +1,4 @@
-/* Progress bar scaling error (benchmark.c:66, util_lib.c:11):
- * run gcc reproduce_progress_bar.c util_lib.c -o reproduce_progress_bar.
- */
+/* Progress bar scaling error (benchmark.c:66, util_lib.c:11) */
 
 #include "util_lib.h"
 #include <stdio.h>

@@ -1,6 +1,4 @@
-/* Lost pointer when realloc fails (tagger_lib.c:68):
- * compile with gcc reproduce_realloc_loss.c tagger_lib.c util_lib.c -o reproduce_realloc_loss.
- * */
+/* Lost pointer when realloc fails (tagger_lib.c:68) */
 
 #include "tagger_lib.h"
 #include <errno.h>
@@ -17,19 +15,19 @@ void *realloc(void *ptr, size_t size)
 
 int main(void)
 {
-    RecursionContext ctx = {0};
-    ctx.ActiveCount = 1;
-    ctx.ActiveTags = malloc(sizeof(char *));
-    ctx.ActiveTags[0] = strdup("only-entry");
+    RecursionContext Ctx = {0};
+    Ctx.ActiveCount = 1;
+    Ctx.ActiveTags = malloc(sizeof(char *));
+    Ctx.ActiveTags[0] = strdup("only-entry");
 
-    char **original_array = ctx.ActiveTags;
+    char **OriginalArray = Ctx.ActiveTags;
 
-    AddActiveTag(&ctx, "new-entry");
+    AddActiveTag( &Ctx, "new-entry" );
 
-    printf("Ctx.ActiveTags is now %p (expected original array)\n", (void *)ctx.ActiveTags);
-    printf("Original array still allocated at %p but leaked by caller\n", (void *)original_array);
+    printf( "Ctx.ActiveTags is now %p (expected original array)\n", (void *)Ctx.ActiveTags );
+    printf( "Original array still allocated at %p but leaked by caller\n", (void *)OriginalArray );
 
-    free(original_array[0]);
-    free(original_array);
+    free( OriginalArray[0] );
+    free( OriginalArray );
     return 0;
 }

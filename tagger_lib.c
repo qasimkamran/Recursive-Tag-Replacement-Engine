@@ -36,7 +36,7 @@ void RemoveActiveTag( RecursionContext *Ctx, const char *TagName )
         {
             free( Ctx->ActiveTags[Index] );
 
-            for( int SubIndex = 0; SubIndex < Ctx->ActiveCount - 1; SubIndex++ )
+            for( int SubIndex = Index; SubIndex < Ctx->ActiveCount - 1; SubIndex++ )
             {
                 Ctx->ActiveTags[SubIndex] = Ctx->ActiveTags[SubIndex + 1];
             }
@@ -71,13 +71,14 @@ void AddActiveTag( RecursionContext *Ctx, const char *TagName )
     if( Ctx == NULL || TagName == NULL )
         return;
 
-    Ctx->ActiveTags = (char**)realloc( Ctx->ActiveTags, ( Ctx->ActiveCount + 1 ) * sizeof(char*) );
+    char** NewActiveTags = (char**)realloc( Ctx->ActiveTags, ( Ctx->ActiveCount + 1 ) * sizeof(char*) );
 
-    if( Ctx->ActiveTags == NULL )
+    if( NewActiveTags == NULL )
     {
         PrintError( "Failed to reallocate memory" );
         return;
     }
+    Ctx->ActiveTags = NewActiveTags;
 
     Ctx->ActiveTags[Ctx->ActiveCount] = strdup( TagName );
     if( Ctx->ActiveTags[Ctx->ActiveCount] == NULL )

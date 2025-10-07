@@ -1,6 +1,4 @@
-/* Active-tag removal shift bug (tagger_lib.c:35):
- * run gcc reproduce_remove_active.c tagger_lib.c util_lib.c -o active_tag_removal_shift.
- * */
+/* Active-tag removal shift bug (tagger_lib.c:35) */
 
 #include "tagger_lib.h"
 #include <stdio.h>
